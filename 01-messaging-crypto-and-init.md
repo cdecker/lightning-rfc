@@ -1,19 +1,20 @@
 # BOLT #1: Message Format, Encryption, Authentication and Initialization
 
-All communications between Lightning nodes should be encrypted in order to
-provide confidentiality for all transcripts between nodes, and authenticated to
-avoid malicious interference. Each node has a known long-term identifier which
-is a public key on Bitcoin's `secp256k1` curve. This long-term public key is
-used within the protocol to establish an encrypted+authenticated connection
-with peers, and also to authenticate any information advertised on the behalf
-of a node.
+All communications between Lightning nodes should be encrypted and
+authenticated in order to provide confidentiality for all transcripts
+between nodes, and authenticated to avoid malicious interference. Each
+node has a known long-term identifier which is a public key on
+Bitcoin's `secp256k1` curve, called the _Node ID_. This long-term
+public key is used within the protocol to establish an
+encrypted+authenticated connection with peers, and also to
+authenticate any information advertised on the behalf of a node.
 
 ## Communication Protocols
 
 This protocol is written with TCP in mind, but could use any ordered,
 reliable transport.
 
-The default TCP port is `9735`.  This corresponds to hexadecimal `2607`,
+The default TCP port is `9735`. This corresponds to hexadecimal `2607`,
 the unicode code point for LIGHTNING.<sup>[2](#reference-2)</sup>
 
 ## Message Format and Handling
@@ -641,12 +642,7 @@ In order to decrypt the _next_ message in the network stream, the following is
 done:
 
 
-  * Read _exactly_ `18-bytes` from the network buffer.
-
-
-  * Let the encrypted length prefix be known as `lc`
-
-
+  * Read _exactly_ `18-bytes` from the network buffer. This is known as `lc` and correcponds to the encrypted length prefix and associated HMAC.
   * Decrypt `lc` using `ChaCha20-Poy1305`, `n`, and `rk` to obtain size of
     the encrypted packet `l`.
     * A zero-length byte slice is to be passed as the AD (associated data).
