@@ -14,7 +14,7 @@ authenticate any information advertised on the behalf of a node.
 This protocol is written with TCP in mind, but could use any ordered,
 reliable transport.
 
-The default TCP port is `9735`. This corresponds to hexadecimal `2607`,
+The default TCP port is 9735. This corresponds to hexadecimal `0x2607`,
 the unicode code point for LIGHTNING.<sup>[2](#reference-2)</sup>
 
 ## Message Format and Handling
@@ -244,7 +244,7 @@ state as follows:
     * where `empty` is a byte string of length 32 fully zeroed out.
  4. `n = 0`
  5. `h = SHA-256(h || prologue)`
-    * where `prologue` is the ascii string: `lightning`.
+    * where `prologue` is the ASCII string: `lightning`.
 
 As a concluding step, both sides mix the responder's public key into the
 handshake digest:
@@ -268,8 +268,8 @@ Act One is sent from initiator to responder. During Act One, the initiator
 attempts to satisfy an implicit challenge by the responder. To complete this
 challenge, the initiator _must_ know the static public key of the responder.
 
-The handshake message is _exactly_ `50 bytes`: `1 byte` for the handshake
-version, `33 bytes` for the compressed ephemeral public key of the initiator,
+The handshake message is _exactly_ 50 bytes: 1 byte for the handshake
+version, 33 bytes for the compressed ephemeral public key of the initiator,
 and `16 bytes` for the `poly1305` tag.
 
 **Sender Actions:**
@@ -296,14 +296,13 @@ and `16 bytes` for the `poly1305` tag.
 
   * Read _exactly_ `50-bytes` from the network buffer.
   * Parse out the read message (`m`) into `v = m[0]`, `e = m[1:34]` and `c = m[43:]`
-    * where `m[0]` is the _first_ byte of `m`, `m[1:33]` are the next `33`
+    * where `m[0]` is the first byte of `m`, `m[1:33]` are the next `33`
       bytes of `m` and `m[34:]` is the last 16 bytes of `m`
     * The raw bytes of the remote party's ephemeral public key (`e`) are to be
       deserialized into a point on the curve using affine coordinates as encoded
       by the key's serialized composed format.
   * If `v` is an unrecognized handshake version, then the responder MUST
     abort the connection attempt.
-
 
   * `h = SHA-256(h || e.pub.serializeCompressed())`
     * Accumulate the initiator's ephemeral key into the authenticating
@@ -337,13 +336,13 @@ and `16 bytes` for the `poly1305` tag.
    <- e, ee
 ```
 
-`Act Two` is sent from the responder to the initiator. `Act Two` will _only_
-take place if `Act One` was successful. `Act One` was successful if the
+Act Two is sent from the responder to the initiator. Act Two will _only_
+take place if Act One was successful. Act One was successful if the
 responder was able to properly decrypt and check the `MAC` of the tag sent at
-the end of `Act One`.
+the end of Act One.
 
-The handshake is _exactly_ `50 bytes:` `1 byte` for the handshake version, `33
-bytes` for the compressed ephemeral public key of the initiator, and `16 bytes`
+The handshake is _exactly_ 50 bytes: 1 byte for the handshake version, 33
+bytes for the compressed ephemeral public key of the initiator, and 16 bytes
 for the `poly1305` tag.
 
 **Sender Actions:**
@@ -382,7 +381,7 @@ for the `poly1305` tag.
 **Receiver Actions:**
 
 
-  * Read _exactly_ `50-bytes` from the network buffer.
+  * Read _exactly_ 50-bytes from the network buffer.
 
 
   * Parse out the read message (`m`) into `v = m[0]`, e = m[1:34]` and `c = m[43:]`
@@ -429,16 +428,15 @@ for the `poly1305` tag.
 
 `Act Three` is the final phase in the authenticated key agreement described in
 this section. This act is sent from the initiator to the responder as a final
-concluding step. `Act Three` is only executed `iff` `Act Two` was successful.
-During `Act Three`, the initiator transports its static public key to the
-responder encrypted with _strong_ forward secrecy using the accumulated `HKDF`
+concluding step. Act Three is only executed `iff` Act Two was successful.
+During Act Three, the initiator transports its static public key to the
+responder encrypted with strong forward secrecy using the accumulated `HKDF`
 derived secret key at this point of the handshake.
 
-
-The handshake is _exactly_ `66 bytes`: `1 byte` for the handshake version, `33
-bytes` for the ephemeral public key encrypted with the `ChaCha20` stream
-cipher, `16 bytes` for the encrypted public key's tag generated via the `AEAD`
-construction, and `16 bytes` for a final authenticating tag.
+The handshake is _exactly_ 66 bytes: 1 byte for the handshake version, 33
+bytes for the ephemeral public key encrypted with the `ChaCha20` stream
+cipher, 16 bytes for the encrypted public key's tag generated via the `AEAD`
+construction, and 16 bytes for a final authenticating tag.
 
 
 **Sender Actions:**
@@ -485,7 +483,7 @@ construction, and `16 bytes` for a final authenticating tag.
 **Receiver Actions:**
 
 
-  * Read _exactly_ `66-bytes` from the network buffer.
+  * Read _exactly_ 66-bytes from the network buffer.
 
 
   * Parse out the read message (`m`) into `v = m[0]`, `c = m[1:50]` and `t = m[50:]`
@@ -507,7 +505,7 @@ construction, and `16 bytes` for a final authenticating tag.
      * where `e` is the responder's original ephemeral key
 
   * `ck, temp_k = HKDF(ck, s)`
-     * The underscore denots that the final `32-bytes` generated by the `HKDF`
+     * The underscore denots that the final 32-bytes generated by the `HKDF`
        invocation are discarded.
      * The nonce `n` should be reset to zero: `n = 0`.
 
@@ -533,7 +531,7 @@ construction, and `16 bytes` for a final authenticating tag.
 
 ## Transport Message Specification
 
-At the conclusion of `Act Three` both sides have derived the encryption keys
+At the conclusion of Act Three both sides have derived the encryption keys
 which will be used to encrypt/decrypt messages for the remainder of the
 session.
 
@@ -544,13 +542,13 @@ messages encapsulated within the encrypted transport messages can be larger
 than the maximum transport messages. If a party wishes to send a message larger
 then 65535 bytes, then they can simply partition the message into chunks less
 than the maximum size, sending each of them sequentially. Messages which exceed
-the max message size MUST be partitioned into chunks of size `65519 bytes`, in
-order to leave room for the `16-byte` `MAC`.
+the max message size MUST be partitioned into chunks of size 65519 bytes, in
+order to leave room for the 16-byte `MAC`.
 
 
 In order to make make traffic analysis more difficult, the length prefix for
 all encrypted transport messages is also encrypted. Additionally we add a
-`16-byte` `Poly-1305` tag to the encrypted length prefix in order to ensure
+16-byte `Poly-1305` tag to the encrypted length prefix in order to ensure
 that the packet length hasn't been modified with in-flight, and also to avoid
 creating a decryption oracle.
 
@@ -571,7 +569,7 @@ The structure of transport messages resembles the following:
 +------------------------------
 ```
 
-The prefixed packet lengths are encoded as a `2-byte` big-endian integer.
+The prefixed packet lengths are encoded as a 2-byte big-endian integer.
 
 
 ### Encrypting Messages
@@ -585,7 +583,7 @@ In order to encrypt a message (`m`), given a sending key (`sk`), and a nonce
      where `len` obtains the length in bytes of the message.
 
 
-  * Serialize `l` into `2-bytes` encoded as a big-endian integer.
+  * Serialize `l` into 2 bytes encoded as a big-endian integer.
 
 
   * Encrypt `l` using `ChaChaPoly-1305`, `n`, and `sk` to obtain `lc`
@@ -608,7 +606,7 @@ In order to decrypt the _next_ message in the network stream, the following is
 done:
 
 
-  * Read _exactly_ `18-bytes` from the network buffer. This is known as `lc` and correcponds to the encrypted length prefix and associated HMAC.
+  * Read _exactly_ 18 bytes from the network buffer. This is known as `lc` and correcponds to the encrypted length prefix and associated HMAC.
   * Decrypt `lc` using `ChaCha20-Poy1305`, `n`, and `rk` to obtain size of
     the encrypted packet `l`.
     * A zero-length byte slice is to be passed as the AD (associated data).
@@ -635,22 +633,19 @@ backwards secrecy).
 
 
 Key rotation is performed for _each_ key (`sk` and `rk`) _individually _. A key
-is to be rotated after a party sends of decrypts `1000` messages with it.
+is to be rotated after a party sends of decrypts 1000 messages with it.
 This can be properly accounted for by rotating the key once the nonce dedicated
-to it exceeds `1000`.
+to it exceeds 1000.
 
 
 Key rotation for a key `k` is performed according to the following:
 
 
-  * Let `ck` be the chaining key obtained at the end of `Act Three`.
+  * Let `ck` be the chaining key obtained at the end of Act Three.
   * `ck', k' = HKDF(ck, k)`
   * Reset the nonce for the key to `n = 0`.
   * `k = k'`
-  * 'ck = ck''
-
-
-
+  * `ck = ck'`
 
 ## Future Directions
 
@@ -736,7 +731,7 @@ A node MUST NOT set `len` to greater than the data length.
 
 
 A node receiving `MSG_ERROR` MUST fail the channel referred to by
-`channel-id`, or if `channel-id` is 0xFFFFFFFFFFFFFFFF it MUST fail
+`channel-id`, or if `channel-id` is `0xFFFFFFFFFFFFFFFF` it MUST fail
 all channels and MUST close the connection.  A receiving node MUST truncate
 `len` to the remainder of the packet if it is larger.
 
