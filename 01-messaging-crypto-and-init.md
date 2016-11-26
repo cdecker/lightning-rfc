@@ -84,10 +84,10 @@ authentication is achieved implicitly via a series of `ECDH` (Elliptic-Curve
 Diffie-Hellman) operations followed by a `MAC` check.
 
 The authenticated key agreement (`Noise_XK`) is performed in three distinct
-steps. During each "act" of the handshake, some (possibly encrypted) keying
+steps, also called acts. During each act of the handshake, some (possibly encrypted) keying
 material is sent to the other party, an `ECDH` is performed based on exactly
 which act is being executed with the result mixed into the current sent of
-encryption keys (`ck` the chainin gkey and `k` the encryption key), and finally
+encryption keys (`ck` the chaining key and `k` the encryption key), and finally
 an `AEAD` payload with a zero length cipher text is sent.  As this payload is
 of length zero, only a `MAC` is sent across.  The mixing of `ECDH` outputs into
 a hash digest forms an incremental TripleDH handshake.
@@ -156,7 +156,7 @@ chosen as the hash function, `secp256k1` as the elliptic curve, and finally
 `ChaChaPoly-1305` as the `AEAD` construction. The composition of `ChaCha20`
 and `Poly1305` used MUST conform to `RFC 7539`<sup>[3](#reference-3)</sup>. With this laid out, the
 official Noise protocol name for our variant is:
-`Noise_XK_secp256k1_ChaChaPoly_SHA256`.  The ascii string representation of
+`Noise_XK_secp256k1_ChaChaPoly_SHA256`.  The ASCII string representation of
 this value is hashed into a digest used to initialize the starting handshake
 state. If the protocol names of two endpoints differs, then the handshake
 process fails immediately.
@@ -174,7 +174,7 @@ The exact size of each Act is as follows:
 
 ### Handshake State
 
-Throughout the handshake process, each side maintains these three variables:
+Throughout the handshake process, each side maintains these six variables:
 
  * `ck`: The **chaining key**. This value is the accumulated hash of all
    previous ECDH outputs. At the end of the handshake, `ck` is used to derive
@@ -203,22 +203,24 @@ The following functions will also be referenced:
       * The returned value is the raw big-endian byte serialization of
         `x-coordinate` (using affine coordinates) of the generated point.
 
-  * `HKDF`: a function is defined in [3](#reference-3), evaluated with a
-    zero-length `info` field.
-     * All invocations of the `HKDF` implicitly return `64-bytes` of
-       cryptographic randomness using the extract-and-expand component of the
-       `HKDF.
+  * `HKDF`: a function as defined in [3](#reference-3), evaluated with
+    a zero-length `info` field.
+	 * All invocations of the `HKDF` implicitly return 64-bytes of
+	   cryptographic randomness using the extract-and-expand component
+	   of the `HKDF`.
 
-  * `encryptWithAD(k, n, ad, plaintext)`: outputs `encrypt(k, n++, ad, plaintext)`
-     * where `encrypt` is an evaluation of `ChaCha20-Poly1305` with the passed
-       arguments.
+  * `encryptWithAD(k, n, ad, plaintext)`: outputs the encryption of
+    `plaintext` with key `k`, associated data `ad` and nonce `n` using
+    `ChaCha20-Poly1305` and increments the nonce `n` after the
+    encryption.
 
-  * `decryptWithAD(k, n, ad, ciphertext)`: outputs `decrypt(k, n++, ad, ciphertext)`
-     * where `decrypt` is an evaluation of `ChaCha20-Poly1305` with the passed
-       arguments.
-
+  * `decryptWithAD(k, n, ad, ciphertext)`: outputs the decryption of
+    `ciphertext` with key `k`, associated data `ad` and nonce `n`
+    using `ChaCha20-Poly1305` and increments nonce `n` after the
+    decryption.
+  
   * `generateKey()`
-     * where generateKey generates and returns a fresh `secp256k1` keypair
+     * where `generateKey` generates and returns a fresh `secp256k1` keypair
      * the object returned by `generateKey` has two attributes: 
          * `.pub`: which returns an abstract object representing the public key
          * `.priv`: which represents the private key used to generate the
@@ -236,105 +238,69 @@ state as follows:
 
  1. `h = SHA-256(protocolName)`
     * where `protocolName = "Noise_XK_secp256k1_ChaChaPoly_SHA256"` encoded as
-      an ascii string.
-
+      an ASCII string.
  2. `ck = h`
-
-
  3. `temp_k = empty`
     * where `empty` is a byte string of length 32 fully zeroed out.
-
-
  4. `n = 0`
-
-
  5. `h = SHA-256(h || prologue)`
     * where `prologue` is the ascii string: `lightning`.
-
 
 As a concluding step, both sides mix the responder's public key into the
 handshake digest:
 
-
  * The initiating node mixes in the responding node's static public key
    serialized in Bitcoin's DER compressed format:
    * `h = SHA-256(h || rs.pub.serializeCompressed())`
-
-
  * The responding node mixes in their local static public key serialized in
    Bitcoin's DER compressed format:
    * `h = SHA-256(h || ls.pub.serializeCompressed())`
 
-
 ### Handshake Exchange
 
-
 #### Act One
-
 
 ```
     -> e, es
 ```
 
-
-Act One is sent from initiator to responder. During `Act One`, the initiator
+Act One is sent from initiator to responder. During Act One, the initiator
 attempts to satisfy an implicit challenge by the responder. To complete this
 challenge, the initiator _must_ know the static public key of the responder.
-
 
 The handshake message is _exactly_ `50 bytes`: `1 byte` for the handshake
 version, `33 bytes` for the compressed ephemeral public key of the initiator,
 and `16 bytes` for the `poly1305` tag.
 
-
 **Sender Actions:**
 
-
   * `e = generateKey()`
-
-
   * `h = SHA-256(h || e.pub.serializeCompressed())`
      * The newly generated ephemeral key is accumulated into our running
        handshake digest.
-
-
   * `s = ECDH(rs, e.priv)`
      * The initiator performs a `ECDH` between its newly generated ephemeral
        key with the remote node's static public key.
-
-
   * `ck, temp_k = HKDF(ck, s)`
      * This phase generates a new temporary encryption key (`temp_k`) which is
        used to generate the authenticating MAC.
      * The nonce `n` should be reset to zero: `n = 0`.
-
-
   * `c = encryptWithAD(temp_k, n, h, zero)`
      * where `zero` is a zero-length plaintext
-
-
   * `h = SHA-256(h || c)`
      * Finally, the generated ciphertext is accumulated into the authenticating
        handshake digest.
-
-
   * Send `m = 0 || e || c` to the responder over the network buffer.
-
 
 **Receiver Actions:**
 
-
   * Read _exactly_ `50-bytes` from the network buffer.
-
-
   * Parse out the read message (`m`) into `v = m[0]`, `e = m[1:34]` and `c = m[43:]`
     * where `m[0]` is the _first_ byte of `m`, `m[1:33]` are the next `33`
       bytes of `m` and `m[34:]` is the last 16 bytes of `m`
     * The raw bytes of the remote party's ephemeral public key (`e`) are to be
       deserialized into a point on the curve using affine coordinates as encoded
       by the key's serialized composed format.
-
-
   * If `v` is an unrecognized handshake version, then the responder MUST
     abort the connection attempt.
 
