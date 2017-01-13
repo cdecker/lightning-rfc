@@ -72,7 +72,7 @@ parser.add_option("--message-fields",
 #    * [len:data]
 message = None
 havedata = None
-typeline = re.compile('1\. type: (?P<value>[0-9]+) \(`(?P<name>[-A-Za-z_]+)`\)')
+typeline = re.compile('1\. type: (?P<value>[A-Z\|0-9]+) \(`(?P<name>[-A-Za-z_]+)`\)')
 dataline = re.compile('\s+\* \[(?P<size>[-a-z0-9*+]+):(?P<name>[-a-z0-9]+)\]')
 
 for i,line in enumerate(fileinput.input(args)):
