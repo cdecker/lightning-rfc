@@ -89,7 +89,9 @@ for i,line in enumerate(fileinput.input(args)):
         havedata = None
     elif message is not None and havedata is None:
         if line != '2. data:':
-            raise ValueError('{}:Expected 2. data:'.format(linenum))
+            # This is an empty message type without data
+            message = None
+            continue
         havedata = True
         dataoff = 0
         off_extraterms = ""

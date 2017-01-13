@@ -442,7 +442,8 @@ Intermediate hops store the shared secret from the forward path and reuse it to 
 In addition each node locally stores the previous hop it received the forward packet from, in order to determine where to send an eventual return packet.
 The node returning the message builds a return packet consisting of the following fields:
 
-1. data:
+1. type: 255 (`error-payload`)
+2. data:
    * [20:hmac]
    * [4:failure-code]
    * [2:additional-len]
