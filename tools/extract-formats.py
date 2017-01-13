@@ -74,10 +74,36 @@ message = None
 havedata = None
 typeline = re.compile('1\. type: (?P<value>[A-Z\|0-9]+) \(`(?P<name>[-A-Za-z_]+)`\)')
 dataline = re.compile('\s+\* \[(?P<size>[-a-z0-9*+]+):(?P<name>[-a-z0-9]+)\]')
+maskline = re.compile('\* 0x(?P<mask>[0-9]+) \((?P<name>[A-Z]+)\): .*')
+
+masks = {}
+
+def evaluate_masks(masks, typ):
+    splits = typ.split('|')
+    val = 0
+    for s in splits:
+        if s in masks:
+            val += masks[s]
+        else:
+            try:
+                val += int(s)
+            except Exception as e:
+                raise ValueError("Unknown mask {name} in type {typ}".format(name=s, typ=typ))
+    return val
 
 for i,line in enumerate(fileinput.input(args)):
     line = line.rstrip()
     linenum = i+1
+
+    match = maskline.fullmatch(line)
+    if match:
+        name, mask, = match.group('name'), match.group('mask')
+
+        if name in masks:
+            raise ValueError("Duplicate mask name {name}".format(name))
+        else:
+            masks[name] = int(mask, 16)
+        continue
 
     match = typeline.fullmatch(line)
     if match:
@@ -85,7 +111,8 @@ for i,line in enumerate(fileinput.input(args)):
             raise ValueError('{}:Found a message while I was already in a message'.format(linenum))
         message = match.group('name')
         if options.output_types:
-            print("{},{}".format(match.group('name'), match.group('value')))
+            value = match.group('value')
+            print("{},{},{}".format(match.group('name'), value, evaluate_masks(masks, value)))
         havedata = None
     elif message is not None and havedata is None:
         if line != '2. data:':
